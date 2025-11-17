@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.security.dao.UserDao">
+
+    <select id="findList" resultType="org.wendu.dye.model.User">
+        select
+              u_id,
+              u_name,
+              u_status
+        from t_user
+        <where>
+            <if test="u_status != null and u_status != ''">
+                u_status = #{u_status}
+            </if>
+            <if test="u_id != null and u_id != ''">
+                and instr(u_id,#{u_id}) > 0
+            </if>
+            <if test="u_name != null and u_name != ''">
+                and instr(u_name,#{u_id}) > 0
+            </if>
+
+        </where>
+
+    </select>
+
+    <select id="existsValidStatus" resultType="boolean">
+        select count(1)
+        from t_user
+        where u_id = #{u_id} and
+            <foreach collection="codes" item="code" separator="or" open="(" close=")">
+                u_status = #{code}
+            </foreach>
+    </select>
+
+    <delete id="delete">
+        delete from t_user
+        where
+            <foreach collection="u_ids" item="id" separator="or">
+                u_id = #{id}
+            </foreach>
+    </delete>
+
+    <select id="findUserRoleList" resultType="org.wendu.dye.model.Role" >
+        select distinct
+            ro_id,
+            ro_name,
+            ro_remark,
+            (select count(ro_id) from t_ur where u_id = #{u_id} and ro_id = r.ro_id ) has
+        from t_role r
+        where ro_status = #{dataStatus}
+        order by ro_id
+    </select>
+
+    <insert id="insertUserRoles">
+        insert into t_ur(u_id,ro_id)
+        values
+        <foreach collection="roleIds" item="roleId" separator="," open="" close="" >
+            (#{u_id},#{roleId})
+        </foreach>
+    </insert>
+
+
+
+</mapper>

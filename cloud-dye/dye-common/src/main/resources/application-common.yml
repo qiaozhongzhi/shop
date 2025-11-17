@@ -1,0 +1,28 @@
+logging:
+  level:
+    root: info
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/cloud_dye_db
+    username: root
+    password: 123456
+  cache:
+    type: redis #配置使用redis做为缓存
+    redis:
+      cache-null-values: true # 是否缓存为null的结果，配置为true可以防止缓存穿透
+      time-to-live: 6000000000 #设置缓存有效时间ms
+mybatis:
+  mapper-locations: mapper/**/*.xml
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+
+clouddye:
+  expire-time: 500 # 令牌过期时间（单位：秒），实际过期时间是该时间的两倍

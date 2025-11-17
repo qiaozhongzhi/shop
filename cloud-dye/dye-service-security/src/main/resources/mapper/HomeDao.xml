@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.security.dao.HomeDao">
+
+    <select id="findFunList" resultType="org.wendu.dye.model.Module">
+        select distinct
+            p.m_id p_id ,
+            p.m_name p_name ,
+            c.m_id ,
+            c.m_name ,
+            c.m_pc_url
+
+        from
+            t_module c
+                join t_module  p  on c.m_pid  =  p.m_id
+                join t_rm     rm  on c.m_id   =  rm.m_id
+                join t_role    r  on r.ro_id  =  rm.ro_id
+                join t_ur     ur  on ur.ro_id =  r.ro_id
+                join t_user    u  on u.u_id   =  ur.u_id
+
+        where
+            u.u_id = #{u_id}            and
+            u.u_status  = #{dataStatus} and
+            r.ro_status = #{dataStatus} and
+            c.m_status  = #{dataStatus} and
+            p.m_status  = #{dataStatus} and
+            c.m_pid is not null         and
+            c.m_ismenu &gt;= 2          and
+            p.m_pid is null             and
+            p.m_ismenu &gt;= 2
+
+        order by
+            p.m_id,c.m_id
+
+    </select>
+
+    <select id="findFunListM" resultType="org.wendu.dye.model.Module">
+        select distinct
+            c.m_id ,
+            c.m_name ,
+            c.m_h5_url
+        from
+            t_module c
+                join t_rm     rm  on c.m_id   =  rm.m_id
+                join t_role    r  on r.ro_id  =  rm.ro_id
+                join t_ur     ur  on ur.ro_id =  r.ro_id
+                join t_user    u  on u.u_id   =  ur.u_id
+
+        where
+            u.u_id = #{u_id}            and
+            u.u_status  = #{dataStatus} and
+            r.ro_status = #{dataStatus} and
+            c.m_status  = #{dataStatus} and
+            c.m_pid is not null         and
+            (c.m_ismenu = 1  or c.m_ismenu = 3)
+        order by
+            c.m_id
+
+    </select>
+
+</mapper>

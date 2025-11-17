@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.info.InfoDao">
+
+    <select id="findList" resultType="org.wendu.dye.model.Info">
+        select
+               info_id,
+               info_name,
+               info_type,
+               info_remark,
+               info_status
+        from t_info
+        <where>
+
+            <if test="info_type != null">
+                info_type = #{info_type}
+            </if>
+
+            <if test="info_name != null and info_name != ''">
+                and instr(info_name,#{info_name}) &gt; 0
+            </if>
+
+            <if test="info_remark != null and info_remark != ''">
+                and instr(info_remark,#{info_remark}) &gt; 0
+            </if>
+            <if test="info_status != null  and info_status != '' ">
+                and info_status = #{info_status}
+            </if>
+
+        </where>
+
+    </select>
+
+
+
+    <delete id="deleteInfo">
+
+        delete from t_info
+        where
+           info_type = #{info_type} and
+           <foreach collection="ids" item="id" separator="or" open="(" close=")" >
+                info_id = #{id}
+           </foreach>
+
+    </delete>
+
+
+
+</mapper>

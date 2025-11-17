@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.process.dao.ProcessDao">
+
+    <select id="findPlanList" resultType="org.wendu.dye.model.DyePlan">
+        select
+            plan_id,
+            plan_xh,
+            plan_month,
+            plan_cus,
+            plan_std,
+            plan_color,
+            plan_num,
+            plan_type,
+            plan_date,
+            plan_person,
+            plan_status,
+            cus.info_name cus_name,
+            std.info_name std_name,
+            clr.info_name color_name,
+            (select ifnull(sum(group_num),0) from t_group where plan_id = p.plan_id ) group_total
+
+        from bus_plan p left join t_info cus on p.plan_cus = cus.info_id
+                        left join t_info std on p.plan_std = std.info_id
+                        left join t_info clr on p.plan_color = clr.info_id
+        <where>
+
+            plan_status = 1
+
+            and (select ifnull(sum(group_num),0) from t_group where plan_id = p.plan_id ) &lt; plan_num
+
+            <if test="plan_id != null and plan_id != ''">
+                and instr(plan_id,#{plan_id}) &gt; 0
+            </if>
+
+            <if test="plan_xh_start != null and plan_xh_start >= 1">
+                and plan_xh &gt;= #{plan_xh_start}
+            </if>
+
+            <if test="plan_xh_end != null and plan_xh_end >= 1">
+                and plan_xh &lt;= #{plan_xh_end}
+            </if>
+
+            <if test="plan_month != null and plan_month != '' ">
+                and plan_month = #{plan_month}
+            </if>
+
+            <if test="plan_cus != null and plan_cus != '' ">
+                and plan_cus = #{plan_cus}
+            </if>
+
+            <if test="plan_std != null and plan_std != '' ">
+                and plan_std = #{plan_std}
+            </if>
+
+            <if test="plan_color != null and plan_color != '' ">
+                and plan_color = #{plan_color}
+            </if>
+
+            <if test="plan_num_start != null and plan_num_start > 0.09">
+                and plan_num &gt;= #{plan_num_start}
+            </if>
+
+            <if test="plan_num_end != null  and plan_num_end > 0.09">
+                and plan_num &lt;= #{plan_num_end}
+            </if>
+
+            <if test="plan_type != null ">
+                and plan_type = #{plan_type}
+            </if>
+
+            <if test="plan_date_start != null">
+                and plan_date &lt;= #{plan_date_start}
+            </if>
+
+            <if test="plan_date_end != null">
+                and plan_date &lt;= #{plan_date_end}
+            </if>
+
+            <if test="plan_person != null and plan_person != ''">
+                and instr(plan_person,#{plan_person}) &gt; 0
+            </if>
+
+        </where>
+
+        order by
+            plan_month,plan_xh,plan_date
+
+    </select>
+
+    <select id="findGroupList" resultType="org.wendu.dye.model.DyeGroup">
+        select
+            g.group_id,
+            g.plan_id,
+            plan_type,
+            group_cus,
+            group_std,
+            group_color,
+            group_num,
+            pretreat_num,
+            dye_num,
+            print_num,
+            arrange_num,
+            check_num,
+            cus.info_name cus_name,
+            std.info_name std_name,
+            clr.info_name color_name,
+
+
+
+            pn.pn_id,
+            pn.pd_id, -- 流程状态编号
+            pn.pn_date,
+            pn.pn_per
+
+
+
+        from t_group g left join t_info cus on g.group_cus = cus.info_id
+                       left join t_info std on g.group_std = std.info_id
+                       left join t_info clr on g.group_color = clr.info_id
+                       left join t_process_node pn on g.group_id = pn.group_id
+                       left join bus_plan plan on plan.plan_id = g.plan_id
+                       left join t_process_def pd on pd.pd_id = pn.pd_id
+
+        <where>
+            pd.pd_cls = 1
+            <if test="arrange">
+               and (
+                    (plan.plan_type = 1 and pn.pd_id = 1020) or
+                    (plan.plan_type = 2 and pn.pd_id = 1030) or
+                    (plan.plan_type = 3 and pn.pd_id = 1040) or
+                    (plan.plan_type = 4 and pn.pd_id = 1040) or
+                    pn.pd_id &gt;= 1050
+                )
+            </if>
+
+            <if test="print">
+                and (
+                (plan.plan_type = 3 and pn.pd_id = 1020) or
+                (plan.plan_type = 4 and pn.pd_id = 1030) or
+                pn.pd_id &gt;= 1040
+                )
+            </if>
+
+            <if test="acceptedProdTypes != null ">
+                and
+                <foreach collection="acceptedProdTypes" item="prodType" separator="or" open="(" close=")">
+                    plan.plan_type = #{prodType}
+                </foreach>
+            </if>
+
+            and pn.pn_curr = 1
+            and pn.pn_status = 1
+            <if test="prePdIds != null and prePdIds != '' ">
+                and
+                <foreach collection="prePdIds" item="pdid" open="(" close=")" separator="or">
+                    pn.pd_id &gt;= #{pdid}
+                </foreach>
+            </if>
+
+            <if test="pd_id != null ">
+                and pn.pd_id = #{pd_id}
+            </if>
+
+            <if test="pd_idArr != null">
+                and
+                <foreach collection="pd_idArr" item="pdid" open="(" close=")" separator="or">
+                    <if test="pdid != null">
+                        pn.pd_id = #{pdid}
+                    </if>
+                </foreach>
+            </if>
+
+            <if test="plan_id != null and plan_id != ''">
+                and instr(g.plan_id,#{plan_id}) &gt; 0
+            </if>
+            <if test="group_id != null and group_id != ''">
+                and instr(g.group_id,#{group_id}) &gt; 0
+            </if>
+
+            <if test="plan_type != null ">
+                and plan_type = #{plan_type}
+            </if>
+
+            <if test="group_cus != null and group_cus != '' ">
+                and group_cus = #{group_cus}
+            </if>
+
+            <if test="group_std != null and group_std != '' ">
+                and group_std = #{group_std}
+            </if>
+
+            <if test="group_color != null and group_color != '' ">
+                and group_color = #{group_color}
+            </if>
+
+            <if test="date_start != null">
+                and pn.pn_date &gt;= #{date_start}
+            </if>
+
+            <if test="date_end != null">
+                and pn.pn_date &lt;= #{date_end}
+            </if>
+
+            <if test="group_num_start != null and group_num_start > 0.09 ">
+                and group_num &gt;= #{group_num_start}
+            </if>
+
+            <if test="group_num_end != null  and group_num_end > 0.09 " >
+                and group_num &lt;= #{group_num_end}
+            </if>
+
+            <if test="per != null and per != '' ">
+                and instr(pn.pn_per,#{per}) &gt; 0
+            </if>
+
+        </where>
+
+        order by pn.pn_date desc
+
+
+    </select>
+
+
+
+
+    <insert id="insertProcessNode">
+        insert into t_process_node(
+
+                                   pn_id,
+                                   <if test="group_id != null ">group_id,</if>
+                                   <if test="product_id != null ">product_id,</if>
+                                   <if test="store_id != null ">store_id,</if>
+                                   pd_id,
+                                   pn_date,
+                                   pn_per,
+                                   pn_curr,
+                                   pn_status
+
+        )
+        values(
+                                    #{pn_id},
+                                    <if test="group_id != null ">#{group_id},</if>
+                                    <if test="product_id != null ">#{product_id},</if>
+                                    <if test="store_id != null ">#{store_id},</if>
+                                    #{pd_id},
+                                    #{pn_date},
+                                    #{pn_per},
+                                    #{pn_curr},
+                                    #{pn_status}
+        )
+    </insert>
+
+    <update id="updateProcessNode">
+        update t_process_node
+        <set>
+            pn_date = #{pn_date},
+            pn_per = #{pn_per},
+            pn_curr = #{pn_curr},
+            pn_status = #{pn_status}
+        </set>
+        <where>
+            <if test="group_id != null ">group_id = #{group_id} </if>
+            <if test="product_id != null ">product_id = #{product_id}</if>
+            <if test="store_id != null ">store_id = #{store_id}</if>
+            and pd_id = #{pd_id}
+        </where>
+    </update>
+
+
+    <select id="findCheckGroupList" resultType="org.wendu.dye.model.DyeGroup">
+        select
+        g.group_id,
+        g.plan_id,
+        plan_type,
+        group_cus,
+        group_std,
+        group_color,
+        group_num,
+        pretreat_num,
+        dye_num,
+        print_num,
+        arrange_num,
+        ifnull(check_num,0) check_num,
+        cus.info_name cus_name,
+        std.info_name std_name,
+        clr.info_name color_name,
+
+
+
+        pn.pn_id,
+        pn.pd_id, -- 流程状态编号
+        pn.pn_date,
+        pn.pn_per,
+
+        (select ifnull(sum(product_num),0) from bus_product where group_id = g.group_id and product_level = '01') check_1,
+        (select ifnull(sum(product_num),0) from bus_product where group_id = g.group_id and product_level = '02') check_2,
+        (select ifnull(sum(product_num),0) from bus_product where group_id = g.group_id and product_level = '03') check_3,
+        (select ifnull(sum(product_num),0) from bus_product where group_id = g.group_id and product_level = '04') check_4
+
+
+        from t_group g left join t_info cus on g.group_cus = cus.info_id
+                        left join t_info std on g.group_std = std.info_id
+                        left join t_info clr on g.group_color = clr.info_id
+                        left join t_process_node pn on g.group_id = pn.group_id
+                        left join bus_plan plan on plan.plan_id = g.plan_id
+                        left join t_process_def pd on pd.pd_id = pn.pd_id
+
+        <where>
+            pd.pd_cls = 1 and pn.pn_curr = 1 and pn.pn_status = 1
+            <if test="prePdIds != null and prePdIds != '' ">
+                and
+                <foreach collection="prePdIds" item="pdid" open="(" close=")" separator="or">
+                    pn.pd_id &gt;= #{pdid}
+                </foreach>
+            </if>
+
+            <if test="pd_id != null ">
+                and pn.pd_id = #{pd_id}
+            </if>
+
+            <if test="plan_id != null and plan_id != ''">
+                and instr(g.plan_id,#{plan_id}) &gt; 0
+            </if>
+            <if test="group_id != null and group_id != ''">
+                and instr(g.group_id,#{group_id}) &gt; 0
+            </if>
+
+            <if test="plan_type != null ">
+                and plan_type = #{plan_type}
+            </if>
+
+            <if test="group_cus != null and group_cus != '' ">
+                and group_cus = #{group_cus}
+            </if>
+
+            <if test="group_std != null and group_std != '' ">
+                and group_std = #{group_std}
+            </if>
+
+            <if test="group_color != null and group_color != '' ">
+                and group_color = #{group_color}
+            </if>
+
+            <if test="date_start != null">
+                and pn.pn_date &gt;= #{date_start}
+            </if>
+
+            <if test="date_end != null">
+                and pn.pn_date &lt;= #{date_end}
+            </if>
+
+            <if test="group_num_start != null and group_num_start > 0.09 ">
+                and group_num &gt;= #{group_num_start}
+            </if>
+
+            <if test="group_num_end != null  and group_num_end > 0.09 " >
+                and group_num &lt;= #{group_num_end}
+            </if>
+
+            <if test="per != null and per != '' ">
+                and instr(pn.pn_per,#{per}) &gt; 0
+            </if>
+
+        </where>
+
+        order by pn.pn_date desc
+
+
+    </select>
+
+    <select id="findPkgProductList" resultType="org.wendu.dye.model.Product">
+        select
+            p.product_id,
+            p.group_id,
+            plan.plan_type,
+            p.product_level,
+            p.product_num,
+            (select ifnull(sum(store_num),0) from bus_store where product_id = p.product_id) store_num,
+            p.product_cus,
+            p.product_std,
+            p.product_color,
+            cus.info_name cus_name,
+            std.info_name std_name,
+            clr.info_name color_name,
+            pn.pn_date,
+               pn.pd_id,
+               pn.pn_date
+        from
+            bus_product p
+                join t_group g on p.group_id = g.group_id
+                join bus_plan plan on g.plan_id = plan.plan_id
+                join t_info cus on p.product_cus = cus.info_id
+                join t_info std on p.product_std = std.info_id
+                join t_info clr on p.product_color = clr.info_id
+                join t_process_node pn on p.product_id = pn.product_id
+        where
+            p.product_num &gt; 0.09 and
+            pn.pn_curr = 1 and pn.pn_status = 1 and pn.pd_id &gt;= 2020
+            <if test="pd_id !=null ">
+                and pn.pd_id = #{pd_id}
+            </if>
+            <if test="product_id != null and product_id != ''">
+                and instr(p.product_id,#{product_id}) &gt; 0
+            </if>
+            <if test="plan_type != null">
+                and plan_type = #{plan_type}
+            </if>
+            <if test="product_cus != null and product_cus != '' ">
+                and product_cus = #{product_cus}
+            </if>
+
+            <if test="product_std != null and product_std != '' ">
+                and product_std = #{product_std}
+            </if>
+
+            <if test="product_color != null and product_color != '' ">
+                and product_color = #{product_color}
+            </if>
+            <if test="product_level != null and product_level != '' ">
+                and instr(p.product_level,#{product_level}) &gt; 0
+            </if>
+            <if test="date_start != null">
+                and pn.pn_date &gt;= #{date_start}
+            </if>
+
+            <if test="date_end != null">
+                and pn.pn_date &lt;= #{date_end}
+            </if>
+
+            order by pn.pn_date desc
+
+    </select>
+
+    <select id="findStoreList" resultType="org.wendu.dye.model.Store">
+        select
+            s.store_id,
+            p.product_id,
+            g.group_id,
+            plan.plan_id,
+            plan.plan_type,
+            p.product_level,
+            s.store_num,
+            s.store_cus,
+            s.store_std,
+            s.store_color,
+            cus.info_name cus_name,
+            std.info_name std_name,
+            clr.info_name color_name,
+            pn.pd_id,
+            pn.pn_date,
+            pn.pn_per,
+            (case when pn.pn_status = 0 and pn.pn_curr = 0 and pn.pd_id = 3010 then 1 else 0 end) pkging
+
+        from
+            bus_store s
+                join bus_product p on s.product_id = p.product_id
+                join t_group g on p.group_id = g.group_id
+                join bus_plan plan on g.plan_id = plan.plan_id
+                join t_info cus on s.store_cus = cus.info_id
+                join t_info std on s.store_std = std.info_id
+                join t_info clr on s.store_color = clr.info_id
+                join t_process_node pn on s.store_id = pn.store_id
+
+        where
+            ((pn.pn_curr = 1 and pn.pn_status = 1) or (pn.pn_status = 0 and pn.pn_curr = 0 and pn.pd_id = 3010))
+
+            <if test="prePdIds != null and prePdIds != '' ">
+                and
+                <foreach collection="prePdIds" item="pdid" open="(" close=")" separator="or">
+                    pn.pd_id &gt;= #{pdid}
+                </foreach>
+            </if>
+
+            <if test="pd_id !=null ">
+                and pn.pd_id = #{pd_id}
+            </if>
+            <if test="store_id != null and store_id != ''">
+                and instr(s.store_id,#{store_id}) &gt; 0
+            </if>
+
+            <if test="product_id != null and product_id != ''">
+                and instr(s.product_id,#{product_id}) &gt; 0
+            </if>
+
+            <if test="group_id != null and group_id != ''">
+                and instr(g.group_id,#{group_id}) &gt; 0
+            </if>
+
+            <if test="plan_id != null and plan_id != ''">
+                and instr(plan.plan_id,#{plan_id}) &gt; 0
+            </if>
+
+            <if test="plan_type != null">
+                and plan_type = #{plan_type}
+            </if>
+            <if test="store_cus != null and store_cus != '' ">
+                and store_cus = #{store_cus}
+            </if>
+
+            <if test="store_std != null and store_std != '' ">
+                and store_std = #{store_std}
+            </if>
+
+            <if test="store_color != null and store_color != '' ">
+                and store_color = #{store_color}
+            </if>
+            <if test="product_level != null and product_level != '' ">
+                and instr(p.product_level,#{product_level}) &gt; 0
+            </if>
+            <if test="date_start != null">
+                and pn.pn_date &gt;= #{date_start}
+            </if>
+
+            <if test="date_end != null">
+                and pn.pn_date &lt;= #{date_end}
+            </if>
+
+            <if test="per != null and per != '' ">
+                and instr(pn.pn_per,#{per}) &gt; 0
+            </if>
+
+            <if test="store_num_start != null and store_num_start > 0.09 ">
+                and s.store_num &gt;= #{store_num_start}
+            </if>
+
+            <if test="store_num_end != null  and store_num_start > 0.09 ">
+                and s.store_num &lt;= #{store_num_end}
+            </if>
+
+            order by pn.pn_date desc
+
+    </select>
+
+
+
+</mapper>

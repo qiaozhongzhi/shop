@@ -1,0 +1,12 @@
+server:
+  port: 9001
+logging:
+  level:
+    web: trace
+    org.wendu.dye: debug
+spring:
+  application:
+    name: service-base
+  profiles:
+    include:
+      - common

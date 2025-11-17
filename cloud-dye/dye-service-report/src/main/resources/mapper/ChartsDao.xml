@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.report.dao.ChartsDao">
+
+
+    <select id="findReportByType" resultType="org.wendu.dye.report.model.TypeReport">
+
+        select
+            plan.plan_type type,
+            sum(ifnull(plan.plan_num,0)) planNUm,
+            sum(ifnull(g.group_num,0)) rowclothNum,
+            sum(ifnull(p.product_num,0)) productNum
+
+        from
+            bus_plan plan left join (select g_.* from t_group g_ join t_process_node  pn_ on g_.group_id = pn_.group_id where pd_id = 1010 and pn_status = 1) g on plan.plan_id = g.plan_id
+                          left join (select p_.* from bus_product p_ join t_process_node  pn_ on p_.product_id = pn_.product_id where pd_id = 2020 and pn_status = 1) p on g.group_id = p.group_id
+        where
+            plan.plan_status = 1 and plan.plan_month like concat(date_format(now(),'%Y'),'%')
+        group by
+            plan.plan_type
+        order by
+            plan.plan_type
+
+    </select>
+
+    <!--
+    List<Double> findMonthPlanNumList();
+
+    List<Double> findMonthRowclothNumList();
+
+    List<Double> findMonthProductNumList();
+    -->
+
+    <select id="findMonthPlanNumList" resultType="double">
+
+        select sum(ifnull(plan.plan_num, 0))
+        from (
+
+             <foreach collection="months" item="month" index="idx"  >
+                 <if test="idx>0"> union all</if> select concat(date_format(now(), '%Y'),'-',lpad(#{month},2,'0')) <if test="idx==0">plan_month</if>
+             </foreach>
+
+             ) t2 left join (select plan_month , plan_num from bus_plan where plan_status = 1 and plan_month &lt;= #{maxMonth}) plan on t2.plan_month = plan.plan_month
+
+        group by
+            t2.plan_month
+        order by
+            t2.plan_month
+
+    </select>
+
+    <select id="findMonthRowclothNumList" resultType="double">
+
+        select sum(ifnull(g.group_num, 0))
+        from (
+
+        <foreach collection="months" item="month" index="idx"  >
+            <if test="idx>0"> union all</if> select concat(date_format(now(), '%Y'),'-',lpad(#{month},2,'0')) <if test="idx==0">plan_month</if>
+        </foreach>
+
+        ) t2 left join (
+                select date_format(pn_.pn_date,'%Y-%m') plan_month, g_.group_num from t_group g_ join t_process_node  pn_ on g_.group_id = pn_.group_id where pd_id = 1010 and pn_status = 1
+            ) g on t2.plan_month = g.plan_month
+
+        group by
+        t2.plan_month
+        order by
+        t2.plan_month
+
+    </select>
+
+    <select id="findMonthProductNumList" resultType="double">
+
+        select sum(ifnull(p.product_num, 0))
+        from (
+
+        <foreach collection="months" item="month" index="idx"  >
+            <if test="idx>0"> union all</if> select concat(date_format(now(), '%Y'),'-',lpad(#{month},2,'0')) <if test="idx==0">plan_month</if>
+        </foreach>
+
+        ) t2 left join (
+        select date_format(pn_.pn_date,'%Y-%m') plan_month, p_.product_num from bus_product p_ join t_process_node  pn_ on p_.product_id = pn_.product_id where pd_id = 2020 and pn_status = 1
+        ) p on t2.plan_month = p.plan_month
+
+        group by
+        t2.plan_month
+        order by
+        t2.plan_month
+
+    </select>
+
+    <select id="findProductLevelNum" resultType="org.wendu.dye.report.model.ProductLevelNumReport" >
+        select sum(ifnull(product_num,0)) product_num,product_level
+        from bus_product p
+        where
+            exists ( select pn_id from t_process_node where product_id = p.product_id and pd_id = 2020 and pn_status = 1)
+        group by product_level
+        order by product_level
+    </select>
+
+<!--
+    List<Double> findStoreInNumList(@Param("months") List<Integer> months);
+    List<Double> findStoreOutNumList(@Param("months") List<Integer> months);
+-->
+
+    <select id="findStoreInNumList" resultType="double">
+
+        select sum(ifnull(s.store_month, 0))
+        from (
+
+        <foreach collection="months" item="month" index="idx"  >
+            <if test="idx>0"> union all</if> select concat(date_format(now(), '%Y'),'-',lpad(#{month},2,'0')) <if test="idx==0">store_month</if>
+        </foreach>
+
+        ) t2 left join (
+            select date_format(pn_.pn_date,'%Y-%m') store_month, s_.store_num from bus_store s_ join t_process_node  pn_ on s_.store_id = pn_.store_id where pd_id = 3020 and pn_status = 1
+        ) s on t2.store_month = s.store_month
+
+
+        group by
+        t2.store_month
+        order by
+        t2.store_month
+
+    </select>
+
+    <select id="findStoreOutNumList" resultType="double">
+
+        select sum(ifnull(s.store_month, 0))
+        from (
+
+        <foreach collection="months" item="month" index="idx"  >
+            <if test="idx>0"> union all</if> select concat(date_format(now(), '%Y'),'-',lpad(#{month},2,'0')) <if test="idx==0">store_month</if>
+        </foreach>
+
+        ) t2 left join (
+        select date_format(pn_.pn_date,'%Y-%m') store_month, s_.store_num from bus_store s_ join t_process_node  pn_ on s_.store_id = pn_.store_id where pd_id = 3030 and pn_status = 1
+        ) s on t2.store_month = s.store_month
+
+        group by
+        t2.store_month
+        order by
+        t2.store_month
+
+    </select>
+
+    <select id="findTodayReport" resultType="org.wendu.dye.report.model.TodayReport" >
+        select
+            ifnull(rowclothNum,0) rowclothNum,
+            ifnull(level_1_num,0) level_1_num,
+            ifnull(level_2_num,0) level_2_num,
+            ifnull(level_3_num,0) level_3_num,
+            ifnull(level_4_num,0) level_4_num,
+            ifnull(inNum,0) inNum,
+            ifnull(outNum,0) outNum
+
+        from (
+                 select (
+                            select sum(ifnull(g.group_num, 0))
+                            from t_group g
+                            where exists(select pn_id
+                                         from t_process_node
+                                         where group_id = g.group_id
+                                           and pd_id = 1010
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) rowclothNum,
+
+                        (
+                            select sum(ifnull(p.product_num, 0))
+                            from bus_product p
+                            where product_level = '01'
+                              and exists(select pn_id
+                                         from t_process_node
+                                         where product_id = p.product_id
+                                           and pd_id = 2020
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) level_1_num,
+
+                        (
+                            select sum(ifnull(p.product_num, 0))
+                            from bus_product p
+                            where product_level = '02'
+                              and exists(select pn_id
+                                         from t_process_node
+                                         where product_id = p.product_id
+                                           and pd_id = 2020
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) level_2_num,
+
+                        (
+                            select sum(ifnull(p.product_num, 0))
+                            from bus_product p
+                            where product_level = '03'
+                              and exists(select pn_id
+                                         from t_process_node
+                                         where product_id = p.product_id
+                                           and pd_id = 2020
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) level_3_num,
+
+                        (
+                            select sum(ifnull(p.product_num, 0))
+                            from bus_product p
+                            where product_level = '04'
+                              and exists(select pn_id
+                                         from t_process_node
+                                         where product_id = p.product_id
+                                           and pd_id = 2020
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) level_4_num,
+
+                        (
+                            select sum(ifnull(s.store_num, 0))
+                            from bus_store s
+                            where exists(select pn_id
+                                         from t_process_node
+                                         where store_id = s.store_id
+                                           and pd_id = 3020
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) inNum,
+
+                        (
+                            select sum(ifnull(s.store_num, 0))
+                            from bus_store s
+                            where exists(select pn_id
+                                         from t_process_node
+                                         where store_id = s.store_id
+                                           and pd_id = 3030
+                                           and pn_status = 1
+                                           and date_format(pn_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d'))
+                        ) outNum
+             ) t
+
+
+    </select>
+
+
+</mapper>

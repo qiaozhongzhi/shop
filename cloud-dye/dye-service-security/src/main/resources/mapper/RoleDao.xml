@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.security.dao.RoleDao">
+
+    <select id="findList" resultType="org.wendu.dye.model.Role">
+        select
+              ro_id,
+              ro_name,
+              ro_remark,
+              ro_status
+        from t_role
+        <where>
+            <if test="ro_status != null and ro_status != ''">
+                ro_status = #{ro_status}
+            </if>
+            <if test="ro_id != null and ro_id != ''">
+                and instr(ro_id,#{ro_id}) > 0
+            </if>
+            <if test="ro_name != null and ro_name != ''">
+                and instr(ro_name,#{ro_id}) > 0
+            </if>
+            <if test="ro_remark != null and ro_remark != ''">
+                and instr(ro_remark,#{ro_id}) > 0
+            </if>
+
+        </where>
+
+    </select>
+
+    <select id="existsValidStatus" resultType="boolean">
+        select count(1)
+        from t_role
+        where ro_id = #{ro_id} and
+        <foreach collection="codes" item="code" separator="or" open="(" close=")">
+            ro_status = #{code}
+        </foreach>
+    </select>
+
+    <delete id="delete">
+        delete from t_role
+        where
+        <foreach collection="ro_ids" item="id" separator="or">
+            ro_id = #{id}
+        </foreach>
+    </delete>
+
+
+    <select id="findRoleModuleList" resultType="org.wendu.dye.model.Module" >
+        select distinct
+            p.m_id p_id,
+            p.m_name p_name,
+            m.m_id,
+            m.m_name,
+            (select count(m_id) from t_rm where ro_id = #{ro_id} and m_id = m.m_id ) has
+        from t_module m join t_module p on m.m_pid = p.m_id
+        where m.m_pid is not null and m.m_ismenu &gt;= 2 and p.m_ismenu &gt;= 2 and m.m_status = '55' and p.m_status = '55'
+        order by p.m_id,m.m_id
+    </select>
+
+    <insert id="insertRoleModules">
+        insert into t_rm(ro_id,m_id)
+        values
+            <foreach collection="moduleIds" item="moduleId" separator="," open="" close="" >
+                (#{roleId},#{moduleId})
+            </foreach>
+    </insert>
+
+</mapper>

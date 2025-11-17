@@ -1,0 +1,55 @@
+server:
+  port: 9999
+logging:
+  level:
+    root: info
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+
+        - id: base
+          uri: lb://service-base
+          predicates:
+            - Path=/public/**
+          filters:
+            - RewritePath=/public/?(?<content>.*),/$\{content}
+
+
+        - id: security
+          uri: lb://service-security
+          predicates:
+            - Path=/security/**
+          filters:
+            - RewritePath=/security/?(?<content>.*),/$\{content}
+
+        - id: info
+          uri: lb://service-info
+          predicates:
+            - Path=/info/**
+          filters:
+            - RewritePath=/info/?(?<content>.*),/$\{content}
+
+        - id: plan
+          uri: lb://service-plan
+          predicates:
+            - Path=/plan/**
+          filters:
+            - RewritePath=/plan/?(?<content>.*),/$\{content}
+
+        - id: process
+          uri: lb://service-process
+          predicates:
+            - Path=/process/**
+          filters:
+            - RewritePath=/process/?(?<content>.*),/$\{content}
+
+        - id: report
+          uri: lb://service-report
+          predicates:
+            - Path=/report/**
+          filters:
+            - RewritePath=/report/?(?<content>.*),/$\{content}
+

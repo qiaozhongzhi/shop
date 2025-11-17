@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.wendu.dye.plan.dao.ManagerDao">
+
+    <select id="findList" resultType="org.wendu.dye.model.DyePlan">
+        select
+            plan_id,
+            plan_xh,
+            plan_month,
+            plan_cus,
+            plan_std,
+            plan_color,
+            plan_num,
+            plan_type, -- 产品类型
+            plan_date, -- 计划下达时间
+            plan_person,-- 计划下达人
+            plan_status,-- 计划是否下达
+            cus.info_name cus_name,
+            std.info_name std_name,
+            clr.info_name color_name
+        from bus_plan p left join t_info cus on p.plan_cus = cus.info_id
+                        left join t_info std on p.plan_std = std.info_id
+                        left join t_info clr on p.plan_color = clr.info_id
+        <where>
+
+            <if test="plan_id != null and plan_id != ''">
+                instr(plan_id,#{plan_id}) &gt; 0
+            </if>
+
+            <if test="plan_xh_start != null and plan_xh_start >= 1">
+                and plan_xh &gt;= #{plan_xh_start}
+            </if>
+
+            <if test="plan_xh_end != null and plan_xh_end >= 1">
+                and plan_xh &lt;= #{plan_xh_end}
+            </if>
+
+            <if test="plan_month != null and plan_month != '' ">
+                and plan_month = #{plan_month}
+            </if>
+
+            <if test="plan_cus != null and plan_cus != '' ">
+                and plan_cus = #{plan_cus}
+            </if>
+
+            <if test="plan_std != null and plan_std != '' ">
+                and plan_std = #{plan_std}
+            </if>
+
+            <if test="plan_color != null and plan_color != '' ">
+                and plan_color = #{plan_color}
+            </if>
+
+            <if test="plan_num_start != null and plan_num_start > 0.09">
+                and plan_num &gt;= #{plan_num_start}
+            </if>
+
+            <if test="plan_num_end != null  and plan_num_end > 0.09">
+                and plan_num &lt;= #{plan_num_end}
+            </if>
+
+            <if test="plan_type != null ">
+                and plan_type = #{plan_type}
+            </if>
+
+            <if test="plan_date_start != null">
+                and plan_date &lt;= #{plan_date_start}
+            </if>
+
+            <if test="plan_date_end != null">
+                and plan_date &lt;= #{plan_date_end}
+            </if>
+
+            <if test="plan_person != null and plan_person != ''">
+                and instr(plan_person,#{plan_person}) &gt; 0
+            </if>
+
+            <if test="plan_status != null ">
+                and plan_status = #{plan_status}
+            </if>
+
+        </where>
+
+    </select>
+
+    <update id="updateOne">
+        update bus_plan
+        <set>
+            <if test="plan_month != null and plan_month != ''">
+                plan_month = #{plan_month},
+            </if>
+            <if test="plan_type != null">
+                plan_type = #{plan_type},
+            </if>
+            <if test="plan_cus != null and plan_cus != ''">
+                plan_cus = #{plan_cus},
+            </if>
+            <if test="plan_std != null and plan_std != ''">
+                plan_std = #{plan_std},
+            </if>
+            <if test="plan_color != null and plan_color != ''">
+                plan_color = #{plan_color},
+            </if>
+            <if test="plan_num != null and plan_num > 0.09 ">
+                plan_num = #{plan_num},
+            </if>
+            <if test="plan_xh != null and plan_xh >= 1">
+                plan_xh = #{plan_xh},
+            </if>
+
+            <if test="plan_date != null">
+                plan_date = #{plan_date,javaType=java.util.Date,jdbcType=TIMESTAMP},
+            </if>
+            <if test="plan_person != null and plan_person != ''">
+                plan_person = #{plan_person},
+            </if>
+
+            <if test="plan_status != null ">
+                plan_status = #{plan_status},
+            </if>
+        </set>
+        where
+            plan_id = #{plan_id} and plan_status = 0
+    </update>
+
+
+
+    <delete id="deleteByIds">
+
+        delete from bus_plan
+        where
+            plan_status = 0 and
+            <foreach collection="ids" item="id" separator="or" open="(" close=")" >
+                plan_id = #{id}
+            </foreach>
+    </delete>
+
+
+
+
+</mapper>

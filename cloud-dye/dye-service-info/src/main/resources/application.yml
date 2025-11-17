@@ -1,0 +1,12 @@
+server:
+  port: 8001
+logging:
+  level:
+    web: trace
+    org.wendu.dye: debug
+spring:
+  application:
+    name: service-info
+  profiles:
+    include:
+      - common

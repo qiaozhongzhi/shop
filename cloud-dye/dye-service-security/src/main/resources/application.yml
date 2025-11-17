@@ -1,0 +1,13 @@
+server:
+  port: 8002
+logging:
+  level:
+    web: trace
+    org.wendu.dye: debug
+
+spring:
+  application:
+    name: service-security
+  profiles:
+    include:
+    - common
